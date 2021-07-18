@@ -1,29 +1,33 @@
+version: '3.7'
 services:
-  db:
-    image: mysql:5.7
-    volumes:
-      - db_data:/var/lib/mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: dbroot
-      MYSQL_DATABASE: wordpress
-      MYSQL_USER: dbuser
-      MYSQL_PASSWORD: dbpass
-    
-  wordpress:
-    depends_on:
-      - db
-    image: wordpress:latest
-    volumes:
-      - wordpress_data:/var/www/html
+  jenkins:
+    build: myjenkins/
     ports:
-      - "80:80"
-    restart: always
+      - "8080:8080"
+      - "50000:50000"
     environment:
-      WORDPRESS_DB_HOST: db:3306
-      WORDPRESS_DB_USER: dbuser
-      WORDPRESS_DB_PASSWORD: dbpass
-      WORDPRESS_DB_NAME: wordpress
+      DOCKER_HOST: tcp://docker:2376
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: 1      
+    volumes:
+      - jenkins-home:/var/jenkins_home
+      - docker-certs:/certs/client:ro
+      - ./wordpress:/var/jenkins_home/wordpress
+    depends_on:
+      - docker  
+  
+  docker:
+    image: docker:dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    ports:
+      - "80:80"  
+    volumes:
+      - docker-certs:/certs/client 
+      - jenkins-home:/var/jenkins_home
+      - docker-data:/var/lib/docker         
 volumes:
-  db_data: {}
-  wordpress_data: {}
+  jenkins-home:
+  docker-certs:
+  docker-data: 
